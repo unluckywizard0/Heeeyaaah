@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:rls": "bash scripts/test-rls.sh",
     "postinstall": "node scripts/copy-dice-assets.mjs",
     "prebuild": "node scripts/copy-dice-assets.mjs",
     "import:5etools": "tsx scripts/import-5etools.ts"
