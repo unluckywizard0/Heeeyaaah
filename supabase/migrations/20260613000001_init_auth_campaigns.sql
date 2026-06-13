@@ -228,9 +228,9 @@ create policy "members_select_self_dm_or_co" on public.campaign_members
     or public.is_campaign_dm(campaign_id)
     or public.is_campaign_member(campaign_id)
   );
-create policy "members_insert_self" on public.campaign_members
-  for insert to authenticated
-  with check (user_id = (select auth.uid()));
+-- No client-side INSERT policy: join_campaign() and handle_new_campaign() are
+-- SECURITY DEFINER and insert memberships themselves, so the invite-code RPC
+-- is the only way to join a campaign (and `role` can't be set by the client).
 create policy "members_delete_self_or_dm" on public.campaign_members
   for delete to authenticated
   using (user_id = (select auth.uid()) or public.is_campaign_dm(campaign_id));
