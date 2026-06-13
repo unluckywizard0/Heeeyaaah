@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# 5e.tools import cache (scripts/import-5etools.ts)
+/.cache
+
 # next.js
 /.next/
 /out/

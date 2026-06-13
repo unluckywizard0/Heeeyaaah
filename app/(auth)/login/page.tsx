@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { LoginForm } from '@/components/auth/login-form'
+import { OAuthButtons } from '@/components/auth/oauth-buttons'
 
 export const metadata: Metadata = {
   title: 'Sign In',
@@ -16,7 +17,18 @@ export default function LoginPage() {
           Sign in to your campaign
         </p>
       </div>
+
       <LoginForm />
+
+      <div className="my-6 flex items-center gap-3" aria-hidden="true">
+        <span className="h-px flex-1" style={{ background: 'var(--border)' }} />
+        <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
+          or
+        </span>
+        <span className="h-px flex-1" style={{ background: 'var(--border)' }} />
+      </div>
+
+      <OAuthButtons />
     </div>
   )
 }
