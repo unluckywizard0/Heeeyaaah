@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppNav } from '@/components/layout/nav'
+import { DiceTray } from '@/components/dice/dice-tray'
+import { DiceFab } from '@/components/dice/dice-fab'
 
 export default async function AppLayout({
   children,
@@ -33,6 +35,9 @@ export default async function AppLayout({
       >
         {children}
       </main>
+
+      <DiceTray />
+      <DiceFab />
     </div>
   )
 }
