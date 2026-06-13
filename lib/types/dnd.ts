@@ -6,6 +6,14 @@ export type Edition = '2014' | '2024'
 
 export type CampaignRole = 'dm' | 'player'
 
+export interface Profile {
+  id: string
+  email: string | null
+  username: string | null
+  avatar_url: string | null
+  created_at: string
+}
+
 export interface Campaign {
   id: string
   name: string
@@ -21,6 +29,13 @@ export interface CampaignMember {
   user_id: string
   role: CampaignRole
   joined_at: string
+}
+
+// A user's membership row with its campaign embedded — shape returned by the
+// dashboard query (campaign_members → campaigns).
+export interface CampaignMembership {
+  role: CampaignRole
+  campaign: Campaign
 }
 
 // ─── Character ────────────────────────────────────────────────────────────────

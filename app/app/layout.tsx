@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { AppNav } from '@/components/layout/nav'
 import { DiceTray } from '@/components/dice/dice-tray'
 import { DiceFab } from '@/components/dice/dice-fab'
+import { signOut } from '@/lib/actions/auth'
 
 export default async function AppLayout({
   children,
@@ -25,7 +26,27 @@ export default async function AppLayout({
             Nerdos D&amp;D
           </span>
         </div>
-        <AppNav />
+        <div className="flex-1 overflow-y-auto">
+          <AppNav />
+        </div>
+        <div className="border-t px-3 py-3" style={{ borderColor: 'var(--border)' }}>
+          <p
+            className="truncate px-1 pb-2 text-xs"
+            style={{ color: 'var(--foreground-muted)' }}
+            title={user.email ?? undefined}
+          >
+            {user.email}
+          </p>
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="w-full rounded-md px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-[var(--background-elevated)]"
+              style={{ color: 'var(--foreground)' }}
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
       </aside>
 
       <main
