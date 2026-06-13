@@ -13,6 +13,8 @@ export interface RuleBrowserFilter<T> {
   options: (rows: T[]) => string[]
   /** Whether a row matches the selected option value. */
   match: (row: T, value: string) => boolean
+  /** Pre-selected option on first render. Defaults to "all" (no filtering). */
+  defaultValue?: string
 }
 
 interface RuleBrowserProps<T extends { id: string; name: string }> {
@@ -39,23 +41,52 @@ export function RuleBrowser<T extends { id: string; name: string }>({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<Record<string, string>>({})
+  const [selected, setSelected] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      filters.filter((f) => f.defaultValue).map((f) => [f.key, f.defaultValue as string])
+    )
+  )
 
   useEffect(() => {
     let cancelled = false
     const supabase = createClient()
-    Promise.resolve(supabase.from(table).select(select).order('name')).then(
-      ({ data, error: err }) => {
-        if (cancelled) return
-        if (err) setError(true)
-        else setRows((data ?? []) as unknown as T[])
-        setLoading(false)
+
+    // Supabase caps a single select at 1,000 rows; the bestiary/item tables
+    // exceed that, so page through with .range() until a short page comes back.
+    // This is static reference data fetched once, so loading it all is fine.
+    async function loadAll() {
+      const PAGE = 1000
+      const all: T[] = []
+      for (let from = 0; ; from += PAGE) {
+        const { data, error: err } = await supabase
+          .from(table)
+          .select(select)
+          .order('name')
+          .range(from, from + PAGE - 1)
+        if (err) {
+          if (!cancelled) setError(true)
+          break
+        }
+        all.push(...((data ?? []) as unknown as T[]))
+        if (!data || data.length < PAGE) {
+          if (!cancelled) setRows(all)
+          break
+        }
       }
-    )
+      if (!cancelled) setLoading(false)
+    }
+
+    loadAll()
     return () => {
       cancelled = true
     }
   }, [table, select])
+
+  // Derive each filter's option list once per rows load, not on every keystroke.
+  const filterOptions = useMemo(
+    () => filters.map((f) => f.options(rows)),
+    [rows, filters]
+  )
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -79,7 +110,7 @@ export function RuleBrowser<T extends { id: string; name: string }>({
           className="max-w-xs"
           aria-label={`Search ${noun}`}
         />
-        {filters.map((f) => (
+        {filters.map((f, i) => (
           <Select
             key={f.key}
             label={f.label}
@@ -87,7 +118,7 @@ export function RuleBrowser<T extends { id: string; name: string }>({
             onChange={(v) => setSelected((s) => ({ ...s, [f.key]: v }))}
           >
             <option value="all">Any {f.label.toLowerCase()}</option>
-            {f.options(rows).map((opt) => (
+            {filterOptions[i].map((opt) => (
               <option key={opt} value={opt}>
                 {opt}
               </option>
