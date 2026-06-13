@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "node scripts/copy-dice-assets.mjs",
-    "prebuild": "node scripts/copy-dice-assets.mjs"
+    "prebuild": "node scripts/copy-dice-assets.mjs",
+    "import:5etools": "tsx scripts/import-5etools.ts"
   },
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",
@@ -34,9 +35,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^16.4.7",
     "eslint": "^9",
     "eslint-config-next": "15.5.19",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5",
     "vitest": "^2.1.9"
   }

@@ -1,0 +1,33 @@
+name: Weekly 5e.tools sync
+
+# KAN-11 — re-seed the rules_* tables from upstream 5e.tools each week so new
+# releases land automatically. Also runnable on demand from the Actions tab.
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  workflow_dispatch: {}
+
+# Avoid overlapping seed runs clobbering each other.
+concurrency:
+  group: sync-5etools
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Seed rules_* tables
+        run: npm run import:5etools
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
