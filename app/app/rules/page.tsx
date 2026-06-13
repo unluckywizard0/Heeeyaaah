@@ -7,6 +7,10 @@ export const metadata: Metadata = {
 
 const browsers = [
   { href: '/app/rules/spells', label: 'Spells', description: 'Search and filter the spell list.' },
+  { href: '/app/rules/monsters', label: 'Monsters', description: 'Search and filter the bestiary.' },
+  { href: '/app/rules/items', label: 'Items', description: 'Search and filter magic and mundane items.' },
+  { href: '/app/rules/conditions', label: 'Conditions', description: 'Look up condition rules text.' },
+  { href: '/app/rules/feats', label: 'Feats', description: 'Search and filter feats.' },
 ]
 
 export default function RulesPage() {
