@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# dice-box assets are copied from node_modules on install/build
+/public/assets/dice-box
+/public/assets/ammo
+/public/assets/themes
