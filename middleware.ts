@@ -29,14 +29,23 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Build a redirect that preserves any auth cookies getUser() refreshed onto
+  // supabaseResponse — a bare NextResponse.redirect would drop them and can
+  // cause session-refresh loops.
+  const redirectTo = (path: string) => {
+    const res = NextResponse.redirect(new URL(path, request.url))
+    supabaseResponse.cookies.getAll().forEach((cookie) => res.cookies.set(cookie))
+    return res
+  }
+
   // Redirect unauthenticated users away from protected routes
   if (!user && pathname.startsWith('/app')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return redirectTo('/login')
   }
 
   // Redirect authenticated users away from auth pages
   if (user && (pathname === '/login' || pathname === '/')) {
-    return NextResponse.redirect(new URL('/app', request.url))
+    return redirectTo('/app')
   }
 
   return supabaseResponse

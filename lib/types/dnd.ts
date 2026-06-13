@@ -52,7 +52,7 @@ export interface Character {
   name: string
   edition: Edition
   class_data: Record<string, unknown>
-  race_data: Record<string, unknown>
+  species_data: Record<string, unknown> // 2024-first: "race" renamed to "species"
   background_data: Record<string, unknown>
   stats: AbilityScores
   hp: HpBlock
@@ -196,7 +196,8 @@ export interface RulesItem {
 
 // ─── Homebrew ─────────────────────────────────────────────────────────────────
 
-export type HomebrewType = 'spell' | 'weapon' | 'item' | 'monster'
+// TODO(KAN-58): extension point for homebrew classes, subclasses, species, backgrounds, feats
+export type HomebrewType = 'spell' | 'weapon' | 'item' | 'monster' | 'feat'
 
 export interface CustomContent {
   id: string
