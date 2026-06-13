@@ -57,3 +57,40 @@ export function validateNotation(input: string): { valid: boolean; error?: strin
     return { valid: false, error: e instanceof Error ? e.message : 'Invalid notation' }
   }
 }
+
+/** Roll notation locally (no 3D engine) — used for the reduced-motion path and tests. */
+export function rollLocally(
+  input: string,
+  rng: () => number = Math.random,
+): { dice: { sides: number; value: number }[]; modifier: number; total: number } {
+  const { terms, modifier } = parseNotation(input)
+  const dice: { sides: number; value: number }[] = []
+  for (const t of terms) {
+    for (let i = 0; i < t.qty; i++) {
+      dice.push({ sides: t.sides, value: 1 + Math.floor(rng() * t.sides) })
+    }
+  }
+  const total = dice.reduce((sum, d) => sum + d.value, 0) + modifier
+  return { dice, modifier, total }
+}
+
+/** Sum the per-group `value` returned by dice-box (each already includes its modifier). */
+export function totalFromDiceBoxGroups(groups: { value: number }[]): number {
+  return groups.reduce((sum, g) => sum + g.value, 0)
+}
+
+/** Apply advantage/disadvantage to two d20 values, then add the modifier. */
+export function resolveD20Keep(
+  values: number[],
+  mode: 'advantage' | 'disadvantage',
+  modifier: number,
+): { kept: number; dropped: number; keptIndex: number; total: number } {
+  if (values.length !== 2) throw new Error('resolveD20Keep expects exactly two values')
+  const keptIndex =
+    mode === 'advantage'
+      ? values[0] >= values[1] ? 0 : 1
+      : values[0] <= values[1] ? 0 : 1
+  const kept = values[keptIndex]
+  const dropped = values[keptIndex === 0 ? 1 : 0]
+  return { kept, dropped, keptIndex, total: kept + modifier }
+}

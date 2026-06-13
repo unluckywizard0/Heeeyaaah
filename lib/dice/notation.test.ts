@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseNotation, validateNotation } from './notation'
+import { parseNotation, validateNotation, rollLocally, resolveD20Keep, totalFromDiceBoxGroups } from './notation'
 
 describe('parseNotation', () => {
   it('parses a single die', () => {
@@ -51,5 +51,43 @@ describe('validateNotation', () => {
     const r = validateNotation('xyz')
     expect(r.valid).toBe(false)
     expect(typeof r.error).toBe('string')
+  })
+})
+
+describe('rollLocally', () => {
+  it('uses the injected RNG deterministically', () => {
+    // rng returns 0 -> lowest face (1); 0.999 -> highest face
+    const r = rollLocally('2d6+3', () => 0)
+    expect(r.dice).toEqual([{ sides: 6, value: 1 }, { sides: 6, value: 1 }])
+    expect(r.modifier).toBe(3)
+    expect(r.total).toBe(5) // 1 + 1 + 3
+  })
+  it('produces values within range with default RNG', () => {
+    for (let i = 0; i < 50; i++) {
+      const r = rollLocally('1d20')
+      expect(r.total).toBeGreaterThanOrEqual(1)
+      expect(r.total).toBeLessThanOrEqual(20)
+    }
+  })
+})
+
+describe('totalFromDiceBoxGroups', () => {
+  it('sums group values', () => {
+    expect(totalFromDiceBoxGroups([{ value: 10 }, { value: 4 }])).toBe(14)
+  })
+})
+
+describe('resolveD20Keep', () => {
+  it('keeps the higher die on advantage and adds the modifier', () => {
+    expect(resolveD20Keep([7, 15], 'advantage', 5)).toEqual({ kept: 15, dropped: 7, keptIndex: 1, total: 20 })
+  })
+  it('keeps the lower die on disadvantage', () => {
+    expect(resolveD20Keep([7, 15], 'disadvantage', 0)).toEqual({ kept: 7, dropped: 15, keptIndex: 0, total: 7 })
+  })
+  it('keeps index 0 on a tie', () => {
+    expect(resolveD20Keep([12, 12], 'advantage', 0).keptIndex).toBe(0)
+  })
+  it('throws unless exactly two values', () => {
+    expect(() => resolveD20Keep([1, 2, 3], 'advantage', 0)).toThrow()
   })
 })
