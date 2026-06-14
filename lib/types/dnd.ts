@@ -98,6 +98,8 @@ export interface CombatEncounter {
   campaign_id: string
   name: string
   is_active: boolean
+  round_number: number
+  current_turn_index: number
   initiative_order: string[]
 }
 
@@ -108,16 +110,20 @@ export type ActionEconomy = {
   movement_used: number
 }
 
+export type TurnStatus = 'normal' | 'delayed' | 'holding'
+
 export interface CombatCreature {
   id: string
   encounter_id: string
   name: string
-  initiative: number
+  dex_mod: number
+  initiative: number | null
   hp_current: number
   hp_max: number
   ac: number
   conditions: string[]
   action_economy: ActionEconomy
+  turn_status: TurnStatus
   is_player: boolean
   character_id: string | null
   is_active: boolean
