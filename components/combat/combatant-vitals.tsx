@@ -11,8 +11,12 @@ import {
   toggleConcentrationAction,
   recordDeathSaveAction,
   resetDeathSavesAction,
+  toggleActionSlotAction,
+  setMovementUsedAction,
+  resetActionEconomyAction,
 } from '@/lib/actions/combat-vitals'
 import { deathSaveOutcome } from '@/lib/combat/vitals'
+import { FRESH_ECONOMY, type ActionSlot } from '@/lib/combat/action-economy'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -58,6 +62,13 @@ export function CombatantVitals({ creature }: { creature: CombatCreature }) {
     successes: creature.death_save_successes,
     failures: creature.death_save_failures,
   })
+
+  const economy = creature.action_economy ?? FRESH_ECONOMY
+  const slots: { key: ActionSlot; label: string }[] = [
+    { key: 'action', label: 'Action' },
+    { key: 'bonus_action', label: 'Bonus' },
+    { key: 'reaction', label: 'Reaction' },
+  ]
 
   return (
     <Popover>
@@ -126,6 +137,76 @@ export function CombatantVitals({ creature }: { creature: CombatCreature }) {
           />
           Concentrating
         </label>
+
+        {/* Action economy ----------------------------------------------------- */}
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
+              Action economy
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              type="button"
+              onClick={() => startTransition(() => resetActionEconomyAction(creature.id))}
+            >
+              Reset
+            </Button>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {slots.map(({ key, label }) => {
+              const available = economy[key]
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => startTransition(() => toggleActionSlotAction(creature.id, key))}
+                  className="rounded px-1.5 py-0.5 text-xs transition-colors"
+                  style={{
+                    background: available ? 'var(--accent-gold)' : 'var(--background-elevated)',
+                    color: available ? 'var(--background)' : 'var(--foreground-muted)',
+                    textDecoration: available ? 'none' : 'line-through',
+                  }}
+                  aria-pressed={!available}
+                  title={available ? `${label} available` : `${label} spent`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+            <span className="ml-auto flex items-center gap-1 text-xs" style={{ color: 'var(--foreground-muted)' }}>
+              <Button
+                size="sm"
+                variant="outline"
+                type="button"
+                aria-label="Move 5 feet less"
+                onClick={() =>
+                  startTransition(() =>
+                    setMovementUsedAction(creature.id, economy.movement_used - 5),
+                  )
+                }
+              >
+                −5
+              </Button>
+              <span className="w-14 text-center" aria-label="Movement used">
+                {economy.movement_used} ft
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                type="button"
+                aria-label="Move 5 feet more"
+                onClick={() =>
+                  startTransition(() =>
+                    setMovementUsedAction(creature.id, economy.movement_used + 5),
+                  )
+                }
+              >
+                +5
+              </Button>
+            </span>
+          </div>
+        </div>
 
         {/* Conditions --------------------------------------------------------- */}
         <div>

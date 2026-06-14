@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { CombatCreature, ConditionTimers } from '@/lib/types/dnd'
 import { sortByInitiative, advanceTurn, delayCurrentTurn, insertReadiedAction } from '@/lib/combat/turn-order'
 import { tickConditionTimers } from '@/lib/combat/vitals'
+import { resetEconomy } from '@/lib/combat/action-economy'
 
 export interface ActionState {
   error?: string
@@ -138,7 +139,8 @@ export async function nextTurnAction(encounterId: string): Promise<void> {
 
   if (!encounter) return
 
-  const pointer = advanceTurn(encounter.initiative_order as string[], {
+  const order = encounter.initiative_order as string[]
+  const pointer = advanceTurn(order, {
     round_number: encounter.round_number,
     current_turn_index: encounter.current_turn_index,
   })
@@ -147,6 +149,16 @@ export async function nextTurnAction(encounterId: string): Promise<void> {
     .from('combat_encounters')
     .update({ round_number: pointer.round_number, current_turn_index: pointer.current_turn_index })
     .eq('id', encounterId)
+
+  // The combatant whose turn is now beginning gets a fresh action economy
+  // (action, bonus action, reaction, and movement all reset for the new turn).
+  const startingId = order[pointer.current_turn_index]
+  if (startingId) {
+    await supabase
+      .from('combat_creatures')
+      .update({ action_economy: resetEconomy() })
+      .eq('id', startingId)
+  }
 
   // Rolling into a new round ticks down every condition timer in the encounter.
   if (pointer.round_number > encounter.round_number) {

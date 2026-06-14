@@ -90,6 +90,15 @@ function TurnRow({
   encounterId: string
 }) {
   const isDown = creature.hp_current <= 0
+  const econ = creature.action_economy
+  const spentSlots = econ
+    ? ([
+        ['Action', econ.action],
+        ['Bonus', econ.bonus_action],
+        ['Reaction', econ.reaction],
+      ] as const).filter(([, available]) => !available)
+    : []
+  const showEconomy = spentSlots.length > 0 || (econ?.movement_used ?? 0) > 0
 
   return (
     <li
@@ -185,6 +194,21 @@ function TurnRow({
               </span>
             )
           })}
+        </div>
+      )}
+
+      {showEconomy && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-13 text-xs" style={{ color: 'var(--foreground-muted)' }}>
+          {spentSlots.map(([label]) => (
+            <span
+              key={label}
+              className="rounded px-1.5 py-0.5"
+              style={{ background: 'var(--background-elevated)', textDecoration: 'line-through' }}
+            >
+              {label}
+            </span>
+          ))}
+          {(econ?.movement_used ?? 0) > 0 && <span>{econ?.movement_used} ft moved</span>}
         </div>
       )}
     </li>
