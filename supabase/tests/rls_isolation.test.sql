@@ -167,6 +167,63 @@ begin
 end
 $$;
 
+-- ── Roll history: shared vs. private visibility (KAN-16) ────────────────────
+-- The player rolls once shared and once "just for the DM".
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+insert into public.roll_history (campaign_id, user_id, expression, results, context, is_private)
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        '22222222-2222-2222-2222-222222222222', '1d20+3',
+        '{"dice":"1d20","rolls":[14],"modifier":3,"total":17}'::jsonb,
+        'Attack roll', false);
+
+insert into public.roll_history (campaign_id, user_id, expression, results, context, is_private)
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        '22222222-2222-2222-2222-222222222222', '1d20+2',
+        '{"dice":"1d20","rolls":[9],"modifier":2,"total":11}'::jsonb,
+        'Secret Perception check', true);
+
+do $$
+begin
+  assert (select count(*) from public.roll_history) = 2,
+    'the roller should see both their shared and private rolls';
+end
+$$;
+
+-- A forged user_id is rejected: the player cannot log a roll as someone else.
+do $$
+begin
+  begin
+    insert into public.roll_history (campaign_id, user_id, expression, results)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            '11111111-1111-1111-1111-111111111111', '1d4',
+            '{"dice":"1d4","rolls":[2],"modifier":0,"total":2}'::jsonb);
+    assert false,
+      'SECURITY: a player must NOT be able to log a roll as another user';
+  exception
+    when insufficient_privilege then
+      null; -- expected: new row violates row-level security policy
+  end;
+end
+$$;
+
+-- The DM sees the shared roll and the player's private roll (DM visibility).
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+do $$
+begin
+  assert (select count(*) from public.roll_history) = 2,
+    'the DM should see both the shared roll and the player''s private roll';
+end
+$$;
+
+-- An unrelated user sees nothing.
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+do $$
+begin
+  assert (select count(*) from public.roll_history) = 0,
+    'ISOLATION: an unrelated user must not see any roll history';
+end
+$$;
+
 reset role;
 
 \echo '✅ RLS isolation checks passed'
