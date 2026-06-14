@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import type { CampaignMembership, CombatCreature, CombatEncounter } from '@/lib/types/dnd'
 import { CombatTracker } from '@/components/combat/combat-tracker'
+import { PartyOverview } from '@/components/combat/party-overview'
 import { NewEncounterForm } from '@/components/combat/new-encounter-form'
 import { DraftEncounter } from '@/components/combat/draft-encounter'
 import { CampaignSelector } from '@/components/combat/campaign-selector'
@@ -88,7 +89,10 @@ export default async function CombatPage({
           </p>
         )
       ) : (
-        <CombatTracker encounter={encounter} creatures={creatures} isDm={isDm} />
+        <>
+          <PartyOverview creatures={creatures} />
+          <CombatTracker encounter={encounter} creatures={creatures} isDm={isDm} />
+        </>
       )}
     </div>
   )
