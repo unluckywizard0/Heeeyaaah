@@ -31,8 +31,11 @@ export function applyHealing(state: HpState, amount: number, hpMax: number): HpS
 }
 
 /**
- * Set temp HP. Temp HP doesn't stack — taking a new source means keeping the
- * larger of the two pools (PHB rule), which is what the UI offers.
+ * Set the temp HP pool directly to `value` (clamped to ≥ 0). This is a DM
+ * override, not an additive grant: temp HP from different sources doesn't stack
+ * (PHB — you keep the higher pool), so the DM enters the single value they want
+ * to apply rather than the tracker summing it. Passing a lower value (or 0)
+ * deliberately overwrites, which lets the DM correct or clear the pool.
  */
 export function setTempHp(state: HpState, value: number): HpState {
   return { ...state, temp_hp: Math.max(0, Math.floor(value)) }
