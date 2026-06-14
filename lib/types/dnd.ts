@@ -157,6 +157,7 @@ export interface CombatCreature {
   turn_status: TurnStatus
   is_player: boolean
   character_id: string | null
+  monster_id: string | null
   is_active: boolean
 }
 

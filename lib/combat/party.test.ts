@@ -23,6 +23,7 @@ function player(overrides: Partial<CombatCreature> = {}): CombatCreature {
     turn_status: 'normal',
     is_player: true,
     character_id: null,
+    monster_id: null,
     is_active: true,
     ...overrides,
   }

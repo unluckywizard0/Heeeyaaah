@@ -15,6 +15,15 @@ export interface MonsterStatBlock {
   abilities: { key: AbilityKey; label: string; score: number | null }[]
   size: string
   typeText: string
+  actions: MonsterAction[]
+}
+
+export interface MonsterAction {
+  name: string
+  text: string
+  attackBonus: number | null
+  damageDice: string[]
+  saveDc: number | null
 }
 
 export type AbilityKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha'
@@ -98,6 +107,53 @@ function parseType(raw: unknown): string {
   return '—'
 }
 
+/** Strip 5e.tools `{@tag ...}` markup down to plain, readable text. */
+function stripTags(text: string): string {
+  return text.replace(/\{@(\w+)\s*([^}]*)\}/g, (_, tag: string, rest: string) => {
+    const value = rest.split('|')[0]?.trim() ?? ''
+    switch (tag) {
+      case 'hit':
+        return formatModifier(Number(value))
+      case 'dc':
+        return `DC ${value}`
+      case 'h':
+        return 'Hit: '
+      case 'atk':
+        return value === 'mw' ? 'Melee Weapon Attack:' : value === 'rw' ? 'Ranged Weapon Attack:' : 'Attack:'
+      case 'damage':
+        return value
+      default:
+        return rest.split('|').pop()?.trim() || value
+    }
+  })
+}
+
+/** Actions/attacks: 5e.tools encodes rolls inline as `{@hit N}`, `{@damage XdY+Z}`, `{@dc N}`. */
+function parseActions(raw: unknown): MonsterAction[] {
+  if (!Array.isArray(raw)) return []
+  const actions: MonsterAction[] = []
+  for (const item of raw) {
+    if (!isRecord(item)) continue
+    const name = asString(item.name)
+    if (!name) continue
+    const entries = Array.isArray(item.entries)
+      ? item.entries.filter((e): e is string => typeof e === 'string')
+      : []
+    const text = entries.join(' ')
+    const hitMatch = /\{@hit (-?\d+)\}/.exec(text)
+    const dcMatch = /\{@dc (\d+)\}/.exec(text)
+    const damageDice = [...text.matchAll(/\{@damage ([^}|]+)/g)].map((m) => m[1].trim())
+    actions.push({
+      name,
+      text: stripTags(text),
+      attackBonus: hitMatch ? Number(hitMatch[1]) : null,
+      damageDice,
+      saveDc: dcMatch ? Number(dcMatch[1]) : null,
+    })
+  }
+  return actions
+}
+
 export function extractStatBlock(data: unknown): MonsterStatBlock {
   const d = isRecord(data) ? data : {}
   const { ac, acText } = parseAc(d.ac)
@@ -111,6 +167,7 @@ export function extractStatBlock(data: unknown): MonsterStatBlock {
     abilities: ABILITY_ORDER.map(({ key, label }) => ({ key, label, score: asNumber(d[key]) })),
     size: parseSize(d.size),
     typeText: parseType(d.type),
+    actions: parseActions(d.action),
   }
 }
 

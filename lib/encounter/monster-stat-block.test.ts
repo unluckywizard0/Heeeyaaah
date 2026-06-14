@@ -14,6 +14,20 @@ const goblin = {
   int: 10,
   wis: 8,
   cha: 8,
+  action: [
+    {
+      name: 'Scimitar',
+      entries: [
+        '{@atk mw} {@hit 4} to hit, reach 5 ft., one target. {@h}5 ({@damage 1d6+2}) slashing damage.',
+      ],
+    },
+    {
+      name: 'Fire Breath',
+      entries: [
+        'Each creature in the area must make a {@dc 13} Dexterity saving throw, taking {@damage 4d6} fire damage on a failed save.',
+      ],
+    },
+  ],
 }
 
 describe('extractStatBlock', () => {
@@ -66,6 +80,28 @@ describe('extractStatBlock', () => {
 
   it('handles HP given as a special string', () => {
     expect(extractStatBlock({ hp: { special: '0' } }).hpText).toBe('0')
+  })
+
+  it('parses an attack action into hit bonus, damage dice, and readable text', () => {
+    const [scimitar] = extractStatBlock(goblin).actions
+    expect(scimitar.name).toBe('Scimitar')
+    expect(scimitar.attackBonus).toBe(4)
+    expect(scimitar.damageDice).toEqual(['1d6+2'])
+    expect(scimitar.saveDc).toBeNull()
+    expect(scimitar.text).toBe('Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6+2) slashing damage.')
+  })
+
+  it('parses a save-based action into its DC and damage dice', () => {
+    const [, breath] = extractStatBlock(goblin).actions
+    expect(breath.name).toBe('Fire Breath')
+    expect(breath.attackBonus).toBeNull()
+    expect(breath.saveDc).toBe(13)
+    expect(breath.damageDice).toEqual(['4d6'])
+    expect(breath.text).toBe('Each creature in the area must make a DC 13 Dexterity saving throw, taking 4d6 fire damage on a failed save.')
+  })
+
+  it('returns no actions when the field is missing', () => {
+    expect(extractStatBlock({}).actions).toEqual([])
   })
 })
 

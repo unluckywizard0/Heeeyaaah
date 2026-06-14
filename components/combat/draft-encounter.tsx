@@ -6,6 +6,7 @@ import { removeCombatantAction, rollInitiativeAction, setInitiativeAction, start
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AddCombatantForm } from '@/components/combat/add-combatant-form'
+import { AddMonsterCombatant } from '@/components/combat/add-monster-combatant'
 
 const initialState: ActionState = {}
 
@@ -45,6 +46,7 @@ export function DraftEncounter({
       )}
 
       <AddCombatantForm encounterId={encounter.id} />
+      <AddMonsterCombatant encounterId={encounter.id} />
     </div>
   )
 }
