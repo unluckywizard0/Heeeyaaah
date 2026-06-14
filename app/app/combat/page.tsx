@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { CampaignMembership, CombatCreature, CombatEncounter } from '@/lib/types/dnd'
 import { CombatTracker } from '@/components/combat/combat-tracker'
 import { CombatRealtimeRefresh } from '@/components/combat/realtime-refresh'
+import { RollHistoryFeed } from '@/components/combat/roll-history-feed'
 import { PartyOverview } from '@/components/combat/party-overview'
 import { NewEncounterForm } from '@/components/combat/new-encounter-form'
 import { DraftEncounter } from '@/components/combat/draft-encounter'
@@ -97,6 +98,8 @@ export default async function CombatPage({
           <CombatTracker encounter={encounter} creatures={creatures} isDm={isDm} />
         </>
       )}
+
+      <RollHistoryFeed campaignId={selected.campaign.id} />
     </div>
   )
 }
