@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { ConditionTimers } from '@/lib/types/dnd'
+import type { ActionEconomy, ConditionTimers } from '@/lib/types/dnd'
 import {
   applyDamage,
   applyHealing,
@@ -10,6 +10,13 @@ import {
   concentrationDc,
   shouldPromptConcentration,
 } from '@/lib/combat/vitals'
+import {
+  FRESH_ECONOMY,
+  resetEconomy,
+  toggleSlot,
+  setMovementUsed,
+  type ActionSlot,
+} from '@/lib/combat/action-economy'
 
 const COMBAT_PATH = '/app/combat'
 
@@ -136,6 +143,52 @@ export async function resetDeathSavesAction(creatureId: string): Promise<void> {
   await supabase
     .from('combat_creatures')
     .update({ death_save_successes: 0, death_save_failures: 0 })
+    .eq('id', creatureId)
+  revalidatePath(COMBAT_PATH)
+}
+
+/** Flip one action-economy slot (action / bonus action / reaction) on a creature. */
+export async function toggleActionSlotAction(creatureId: string, slot: ActionSlot): Promise<void> {
+  const supabase = await createClient()
+  const { data: c } = await supabase
+    .from('combat_creatures')
+    .select('action_economy')
+    .eq('id', creatureId)
+    .single()
+  if (!c) return
+
+  const economy = (c.action_economy ?? FRESH_ECONOMY) as ActionEconomy
+  await supabase
+    .from('combat_creatures')
+    .update({ action_economy: toggleSlot(economy, slot) })
+    .eq('id', creatureId)
+  revalidatePath(COMBAT_PATH)
+}
+
+/** Record how much movement (feet) a creature has spent this turn. */
+export async function setMovementUsedAction(creatureId: string, feet: number): Promise<void> {
+  const supabase = await createClient()
+  const { data: c } = await supabase
+    .from('combat_creatures')
+    .select('action_economy')
+    .eq('id', creatureId)
+    .single()
+  if (!c) return
+
+  const economy = (c.action_economy ?? FRESH_ECONOMY) as ActionEconomy
+  await supabase
+    .from('combat_creatures')
+    .update({ action_economy: setMovementUsed(economy, feet) })
+    .eq('id', creatureId)
+  revalidatePath(COMBAT_PATH)
+}
+
+/** Reset a creature's action economy to a fresh turn (all slots back, movement zeroed). */
+export async function resetActionEconomyAction(creatureId: string): Promise<void> {
+  const supabase = await createClient()
+  await supabase
+    .from('combat_creatures')
+    .update({ action_economy: resetEconomy() })
     .eq('id', creatureId)
   revalidatePath(COMBAT_PATH)
 }
