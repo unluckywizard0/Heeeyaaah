@@ -7,6 +7,7 @@ import type { CombatCreature, ConditionTimers } from '@/lib/types/dnd'
 import { sortByInitiative, advanceTurn, delayCurrentTurn, insertReadiedAction } from '@/lib/combat/turn-order'
 import { tickConditionTimers } from '@/lib/combat/vitals'
 import { resetEconomy } from '@/lib/combat/action-economy'
+import { extractStatBlock, abilityModifier } from '@/lib/encounter/monster-stat-block'
 
 export interface ActionState {
   error?: string
@@ -63,6 +64,44 @@ export async function addCombatantAction(
     hp_max: hpMax,
     ac,
     is_player: isPlayer,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath(COMBAT_PATH)
+  return {}
+}
+
+/**
+ * Add a combatant from a bestiary entry (KAN-47): pulls AC/HP/DEX from its
+ * stat block and links `monster_id` so the tracker can offer rollable actions.
+ */
+export async function addMonsterCombatantAction(encounterId: string, monsterId: string): Promise<ActionState> {
+  if (!encounterId || !monsterId) return { error: 'Missing encounter or monster.' }
+
+  const supabase = await createClient()
+  const { data, error: fetchError } = await supabase
+    .from('rules_monsters')
+    .select('name, data')
+    .eq('id', monsterId)
+    .maybeSingle()
+
+  if (fetchError || !data) return { error: fetchError?.message ?? 'Monster not found.' }
+
+  const block = extractStatBlock(data.data)
+  const dexScore = block.abilities.find((a) => a.key === 'dex')?.score
+  const dexMod = dexScore != null ? abilityModifier(dexScore) : 0
+  const hpMax = block.hp ?? 10
+  const ac = block.ac ?? 10
+
+  const { error } = await supabase.from('combat_creatures').insert({
+    encounter_id: encounterId,
+    monster_id: monsterId,
+    name: data.name,
+    dex_mod: dexMod,
+    hp_current: hpMax,
+    hp_max: hpMax,
+    ac,
   })
 
   if (error) return { error: error.message }

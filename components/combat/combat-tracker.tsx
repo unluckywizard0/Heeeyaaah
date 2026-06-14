@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { CombatCreature, CombatEncounter } from '@/lib/types/dnd'
 import {
   delayTurnAction,
@@ -12,15 +13,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { AddCombatantForm } from '@/components/combat/add-combatant-form'
 import { CombatantVitals } from '@/components/combat/combatant-vitals'
+import { MonsterActionsPanel } from '@/components/combat/monster-actions-panel'
+import { AddMonsterCombatant } from '@/components/combat/add-monster-combatant'
 
 export function CombatTracker({
   encounter,
   creatures,
   isDm,
+  campaignId,
 }: {
   encounter: CombatEncounter
   creatures: CombatCreature[]
   isDm: boolean
+  campaignId: string
 }) {
   const byId = new Map(creatures.map((c) => [c.id, c]))
   const order = encounter.initiative_order
@@ -69,11 +74,17 @@ export function CombatTracker({
             isCurrent={creature.id === currentId}
             isDm={isDm}
             encounterId={encounter.id}
+            campaignId={campaignId}
           />
         ))}
       </ol>
 
-      {isDm && <AddCombatantForm encounterId={encounter.id} />}
+      {isDm && (
+        <div className="space-y-2">
+          <AddCombatantForm encounterId={encounter.id} />
+          <AddMonsterCombatant encounterId={encounter.id} />
+        </div>
+      )}
     </div>
   )
 }
@@ -83,12 +94,15 @@ function TurnRow({
   isCurrent,
   isDm,
   encounterId,
+  campaignId,
 }: {
   creature: CombatCreature
   isCurrent: boolean
   isDm: boolean
   encounterId: string
+  campaignId: string
 }) {
+  const [showActions, setShowActions] = useState(false)
   const isDown = creature.hp_current <= 0
   const econ = creature.action_economy
   const spentSlots = econ
@@ -157,6 +171,11 @@ function TurnRow({
 
         {isDm && (
           <>
+            {creature.monster_id && (
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowActions((v) => !v)}>
+                {showActions ? 'Hide actions' : 'Actions'}
+              </Button>
+            )}
             <CombatantVitals creature={creature} />
             <form action={async () => { await toggleHoldAction(creature.id, creature.turn_status) }}>
               <Button type="submit" variant="outline" size="sm">
@@ -209,6 +228,12 @@ function TurnRow({
             </span>
           ))}
           {(econ?.movement_used ?? 0) > 0 && <span>{econ?.movement_used} ft moved</span>}
+        </div>
+      )}
+
+      {showActions && creature.monster_id && (
+        <div className="pl-13">
+          <MonsterActionsPanel campaignId={campaignId} creatureName={creature.name} monsterId={creature.monster_id} />
         </div>
       )}
     </li>
