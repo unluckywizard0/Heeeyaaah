@@ -7,6 +7,7 @@ import {
   saveEncounterTemplateAction,
   updateEncounterTemplateAction,
   deleteEncounterTemplateAction,
+  launchEncounterAction,
 } from '@/lib/actions/encounter-templates'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,15 +47,35 @@ export function TemplateManager({
     })
   }
 
+  function doLaunch() {
+    startTransition(async () => {
+      const result = await launchEncounterAction(campaignId, monsters)
+      if (result.error) setError(result.error)
+    })
+  }
+
   return (
     <section
       className="rounded-lg border p-4 space-y-3"
       style={{ borderColor: 'var(--border)', background: 'var(--background-surface)' }}
       aria-label="Saved encounters"
     >
-      <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
-        Saved encounters
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--foreground-muted)' }}>
+          Saved encounters
+        </h2>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={doLaunch}
+          disabled={pending}
+          aria-busy={pending}
+          title="Create a new encounter in the combat tracker with these monsters"
+        >
+          {pending ? 'Launching…' : 'Launch combat'}
+        </Button>
+      </div>
 
       {/* Save the current configuration */}
       <div className="flex items-end gap-2">
