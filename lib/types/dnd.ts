@@ -205,6 +205,19 @@ export interface RollHistory {
   results: RollResult
   context: string
   is_private: boolean
+  request_id: string | null
+  created_at: string
+}
+
+export interface RollRequest {
+  id: string
+  campaign_id: string
+  requested_by: string
+  label: string
+  kind: 'check' | 'save'
+  dc: number | null
+  target_user_id: string | null
+  is_open: boolean
   created_at: string
 }
 

@@ -15,6 +15,7 @@ export async function recordRollAction(
   results: RollResult,
   context: string,
   isPrivate: boolean,
+  requestId: string | null = null,
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
   const {
@@ -29,6 +30,7 @@ export async function recordRollAction(
     results,
     context,
     is_private: isPrivate,
+    request_id: requestId,
   })
 
   if (error) return { error: error.message }
