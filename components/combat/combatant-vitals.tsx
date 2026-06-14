@@ -15,14 +15,22 @@ import {
   setMovementUsedAction,
   resetActionEconomyAction,
 } from '@/lib/actions/combat-vitals'
-import { deathSaveOutcome } from '@/lib/combat/vitals'
+import { deathSaveOutcome, type DamageModifier } from '@/lib/combat/vitals'
 import { FRESH_ECONOMY, type ActionSlot } from '@/lib/combat/action-economy'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
+const DAMAGE_MODIFIERS: { value: DamageModifier; label: string }[] = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'resistant', label: 'Resist' },
+  { value: 'vulnerable', label: 'Vuln' },
+  { value: 'immune', label: 'Immune' },
+]
+
 export function CombatantVitals({ creature }: { creature: CombatCreature }) {
   const [amount, setAmount] = useState('')
+  const [modifier, setModifier] = useState<DamageModifier>('normal')
   const [duration, setDuration] = useState('')
   const [warning, setWarning] = useState<string | null>(null)
   const [, startTransition] = useTransition()
@@ -32,13 +40,14 @@ export function CombatantVitals({ creature }: { creature: CombatCreature }) {
   function doDamage() {
     if (n <= 0) return
     startTransition(async () => {
-      const result = await damageCreatureAction(creature.id, n)
+      const result = await damageCreatureAction(creature.id, n, modifier)
       setWarning(
         result.concentrationCheck
           ? `${result.concentrationCheck.name} must make a DC ${result.concentrationCheck.dc} Constitution save to keep concentration.`
           : null,
       )
       setAmount('')
+      setModifier('normal')
     })
   }
 
@@ -113,6 +122,28 @@ export function CombatantVitals({ creature }: { creature: CombatCreature }) {
             <Button size="sm" variant="ghost" onClick={doTemp} type="button">
               Temp
             </Button>
+          </div>
+
+          {/* Damage type modifier — applied to the next Damage hit only. */}
+          <div className="mt-2 flex items-center gap-1.5" role="group" aria-label="Damage modifier">
+            {DAMAGE_MODIFIERS.map(({ value, label }) => {
+              const selected = modifier === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setModifier(value)}
+                  className="rounded px-1.5 py-0.5 text-xs transition-colors"
+                  style={{
+                    background: selected ? 'var(--accent-gold)' : 'var(--background-elevated)',
+                    color: selected ? 'var(--background)' : 'var(--foreground-muted)',
+                  }}
+                  aria-pressed={selected}
+                >
+                  {label}
+                </button>
+              )
+            })}
           </div>
         </div>
 
