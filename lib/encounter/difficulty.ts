@@ -14,6 +14,8 @@ export interface PartyGroup {
 export interface MonsterGroup {
   cr: number
   count: number
+  /** Bestiary name when the group came from monster search (KAN-24); optional. */
+  name?: string
 }
 
 // 2024 difficulty bands. 'none' is an empty encounter; 'deadly' is anything that
@@ -42,6 +44,21 @@ export function partyBudget(party: PartyGroup[]): XpBudget {
       }
     },
     { low: 0, moderate: 0, high: 0 }
+  )
+}
+
+/**
+ * Append a monster to the list (KAN-24), merging into an existing group when it
+ * matches by name + CR so adding the same monster twice bumps its count instead
+ * of stacking duplicate rows. Returns a new array; never mutates the input.
+ */
+export function addMonster(monsters: MonsterGroup[], group: MonsterGroup): MonsterGroup[] {
+  const i = monsters.findIndex(
+    (m) => m.cr === group.cr && (m.name ?? null) === (group.name ?? null),
+  )
+  if (i === -1) return [...monsters, group]
+  return monsters.map((m, j) =>
+    j === i ? { ...m, count: m.count + Math.max(1, group.count) } : m,
   )
 }
 
