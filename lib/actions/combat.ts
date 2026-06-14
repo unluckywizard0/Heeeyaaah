@@ -3,8 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import type { CombatCreature } from '@/lib/types/dnd'
+import type { CombatCreature, ConditionTimers } from '@/lib/types/dnd'
 import { sortByInitiative, advanceTurn, delayCurrentTurn, insertReadiedAction } from '@/lib/combat/turn-order'
+import { tickConditionTimers } from '@/lib/combat/vitals'
 
 export interface ActionState {
   error?: string
@@ -147,7 +148,40 @@ export async function nextTurnAction(encounterId: string): Promise<void> {
     .update({ round_number: pointer.round_number, current_turn_index: pointer.current_turn_index })
     .eq('id', encounterId)
 
+  // Rolling into a new round ticks down every condition timer in the encounter.
+  if (pointer.round_number > encounter.round_number) {
+    await tickEncounterConditions(supabase, encounterId)
+  }
+
   revalidatePath(COMBAT_PATH)
+}
+
+/**
+ * Decrement all condition timers in an encounter by one round and clear any
+ * that expire (pulling them from each creature's active `conditions` too).
+ */
+async function tickEncounterConditions(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  encounterId: string,
+): Promise<void> {
+  const { data: creatures } = await supabase
+    .from('combat_creatures')
+    .select('id, conditions, condition_timers')
+    .eq('encounter_id', encounterId)
+
+  for (const c of creatures ?? []) {
+    const timers = (c.condition_timers ?? {}) as ConditionTimers
+    if (Object.keys(timers).length === 0) continue
+
+    const { timers: next, expired } = tickConditionTimers(timers)
+    if (expired.length === 0 && Object.keys(next).length === Object.keys(timers).length) continue
+
+    const conditions = ((c.conditions ?? []) as string[]).filter((name) => !expired.includes(name))
+    await supabase
+      .from('combat_creatures')
+      .update({ condition_timers: next, conditions })
+      .eq('id', c.id)
+  }
 }
 
 /** The current combatant delays: they act last this round, and play passes to whoever was next. */

@@ -57,7 +57,7 @@ export default async function CombatPage({
     const { data } = await supabase
       .from('combat_creatures')
       .select(
-        'id, encounter_id, name, dex_mod, initiative, hp_current, hp_max, ac, conditions, action_economy, turn_status, is_player, character_id, is_active'
+        'id, encounter_id, name, dex_mod, initiative, hp_current, hp_max, temp_hp, ac, conditions, condition_timers, concentration, death_save_successes, death_save_failures, action_economy, turn_status, is_player, character_id, is_active'
       )
       .eq('encounter_id', encounter.id)
       .order('created_at', { ascending: true })
