@@ -123,6 +123,50 @@ begin
 end
 $$;
 
+-- ── Encounter templates are DM-only (KAN-26) ─────────────────────────────────
+-- The DM can create a template in their campaign; the joined player and the
+-- outsider must neither see it nor be able to insert one for the campaign.
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.encounter_templates (campaign_id, created_by, name, party, monsters)
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        '11111111-1111-1111-1111-111111111111', 'Goblin ambush',
+        '[{"level":3,"count":4}]'::jsonb, '[{"cr":0.25,"count":6}]'::jsonb);
+
+do $$
+begin
+  assert (select count(*) from public.encounter_templates) = 1,
+    'DM should see the template they saved for their campaign';
+end
+$$;
+
+-- A member of the campaign who is not the DM still sees nothing.
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+do $$
+begin
+  assert (select count(*) from public.encounter_templates) = 0,
+    'ISOLATION: a non-DM member must not see the campaign''s encounter templates';
+  begin
+    insert into public.encounter_templates (campaign_id, created_by, name)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            '22222222-2222-2222-2222-222222222222', 'Sneaky insert');
+    assert false,
+      'SECURITY: a non-DM member must NOT be able to add a template to the campaign';
+  exception
+    when insufficient_privilege then
+      null; -- expected: new row violates row-level security policy
+  end;
+end
+$$;
+
+-- An unrelated user is fully isolated.
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+do $$
+begin
+  assert (select count(*) from public.encounter_templates) = 0,
+    'ISOLATION: an unrelated user must not see any encounter templates';
+end
+$$;
+
 reset role;
 
 \echo '✅ RLS isolation checks passed'
