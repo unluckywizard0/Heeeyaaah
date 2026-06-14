@@ -41,6 +41,15 @@ describe('normalizeMonsters', () => {
     expect(normalizeMonsters([])).toEqual([])
     expect(normalizeMonsters(undefined)).toEqual([])
   })
+  it('preserves a bestiary name so templates round-trip it (KAN-24)', () => {
+    expect(normalizeMonsters([{ cr: 0.25, count: 6, name: 'Goblin' }])).toEqual([
+      { cr: 0.25, count: 6, name: 'Goblin' },
+    ])
+  })
+  it('omits a blank or non-string name', () => {
+    expect(normalizeMonsters([{ cr: 1, count: 1, name: '   ' }])).toEqual([{ cr: 1, count: 1 }])
+    expect(normalizeMonsters([{ cr: 1, count: 1, name: 42 }])).toEqual([{ cr: 1, count: 1 }])
+  })
 })
 
 describe('normalizeTemplateName', () => {

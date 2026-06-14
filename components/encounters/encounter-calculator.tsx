@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
   rateEncounter,
+  addMonster,
   type PartyGroup,
   type MonsterGroup,
   type EncounterRating,
@@ -12,6 +13,7 @@ import {
 import { CR_VALUES, formatCrValue } from '@/lib/encounter/xp-tables'
 import type { EncounterTemplate } from '@/lib/types/dnd'
 import { TemplateManager } from './template-manager'
+import { MonsterSearch } from './monster-search'
 
 const RATING_LABEL: Record<EncounterRating, string> = {
   none: 'No monsters',
@@ -42,6 +44,7 @@ export function EncounterCalculator({
 } = {}) {
   const [party, setParty] = useState<PartyGroup[]>([{ level: 1, count: 4 }])
   const [monsters, setMonsters] = useState<MonsterGroup[]>([{ cr: 1, count: 1 }])
+  const [showSearch, setShowSearch] = useState(false)
 
   const assessment = useMemo(() => rateEncounter(party, monsters), [party, monsters])
   const barPct = Math.min(100, Math.round(assessment.fractionOfHigh * 100))
@@ -89,13 +92,38 @@ export function EncounterCalculator({
 
       {/* ── Monsters ──────────────────────────────────────────────────────── */}
       <Section title="Monsters" onAdd={() => setMonsters((m) => [...m, { cr: 1, count: 1 }])}>
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            onClick={() => setShowSearch((s) => !s)}
+            aria-expanded={showSearch}
+          >
+            {showSearch ? 'Close bestiary' : 'Search bestiary'}
+          </Button>
+        </div>
+
+        {showSearch && (
+          <div
+            className="rounded-lg border p-3"
+            style={{ borderColor: 'var(--border)', background: 'var(--background-surface)' }}
+          >
+            <MonsterSearch onAdd={(monster) => setMonsters((m) => addMonster(m, monster))} />
+          </div>
+        )}
+
         {monsters.length === 0 && (
           <p className="text-sm" style={{ color: 'var(--foreground-muted)' }}>
             No monsters yet — add one to size the fight.
           </p>
         )}
         {monsters.map((group, i) => (
-          <Row key={i} onRemove={() => setMonsters((m) => m.filter((_, j) => j !== i))}>
+          <Row
+            key={i}
+            label={group.name}
+            onRemove={() => setMonsters((m) => m.filter((_, j) => j !== i))}
+          >
             <NumberField
               label="Count"
               value={group.count}
@@ -181,23 +209,38 @@ function Section({
   )
 }
 
-function Row({ children, onRemove }: { children: React.ReactNode; onRemove?: () => void }) {
+function Row({
+  children,
+  onRemove,
+  label,
+}: {
+  children: React.ReactNode
+  onRemove?: () => void
+  label?: string
+}) {
   return (
     <div
-      className="flex items-end gap-3 rounded-lg border p-3"
+      className="rounded-lg border p-3"
       style={{ borderColor: 'var(--border)', background: 'var(--background-surface)' }}
     >
-      {children}
-      <Button
-        variant="ghost"
-        size="sm"
-        type="button"
-        onClick={onRemove}
-        disabled={!onRemove}
-        aria-label="Remove"
-      >
-        ✕
-      </Button>
+      {label && (
+        <p className="mb-2 text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+          {label}
+        </p>
+      )}
+      <div className="flex items-end gap-3">
+        {children}
+        <Button
+          variant="ghost"
+          size="sm"
+          type="button"
+          onClick={onRemove}
+          disabled={!onRemove}
+          aria-label="Remove"
+        >
+          ✕
+        </Button>
+      </div>
     </div>
   )
 }

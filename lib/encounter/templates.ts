@@ -32,13 +32,16 @@ function normalizePartyGroup(raw: unknown): PartyGroup | null {
 /** Coerce one raw monster entry into a valid group, or null if unusable. */
 function normalizeMonsterGroup(raw: unknown): MonsterGroup | null {
   if (!raw || typeof raw !== 'object') return null
-  const { cr, count } = raw as Record<string, unknown>
+  const { cr, count, name } = raw as Record<string, unknown>
   const crNum = Number(cr)
   if (!Number.isFinite(crNum)) return null
-  return {
+  const group: MonsterGroup = {
     cr: clamp(crNum, MIN_CR, MAX_CR),
     count: Math.max(1, toInt(count, 1)),
   }
+  // Preserve a bestiary name (KAN-24) so saved templates round-trip it.
+  if (typeof name === 'string' && name.trim()) group.name = name.trim().slice(0, 80)
+  return group
 }
 
 /**

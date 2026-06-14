@@ -1,6 +1,33 @@
 import { describe, it, expect } from 'vitest'
-import { partyBudget, encounterXp, rateEncounter } from './difficulty'
+import { partyBudget, encounterXp, rateEncounter, addMonster } from './difficulty'
 import { monsterXpForCr, formatCrValue } from './xp-tables'
+
+describe('addMonster', () => {
+  it('appends a new monster group', () => {
+    expect(addMonster([], { cr: 1, count: 1, name: 'Goblin' })).toEqual([
+      { cr: 1, count: 1, name: 'Goblin' },
+    ])
+  })
+
+  it('merges by name + CR, bumping the count', () => {
+    const list = [{ cr: 0.25, count: 2, name: 'Goblin' }]
+    expect(addMonster(list, { cr: 0.25, count: 1, name: 'Goblin' })).toEqual([
+      { cr: 0.25, count: 3, name: 'Goblin' },
+    ])
+  })
+
+  it('keeps same-CR monsters with different names separate', () => {
+    const list = [{ cr: 0.25, count: 1, name: 'Goblin' }]
+    const out = addMonster(list, { cr: 0.25, count: 1, name: 'Kobold' })
+    expect(out).toHaveLength(2)
+  })
+
+  it('does not mutate the input array', () => {
+    const list = [{ cr: 1, count: 1, name: 'Goblin' }]
+    addMonster(list, { cr: 1, count: 1, name: 'Goblin' })
+    expect(list[0].count).toBe(1)
+  })
+})
 
 describe('partyBudget', () => {
   // Worked examples straight from the 2024 DMG / published references.

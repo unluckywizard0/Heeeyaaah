@@ -182,7 +182,7 @@ export interface EncounterTemplate {
   created_by: string
   name: string
   party: Array<{ level: number; count: number }>
-  monsters: Array<{ cr: number; count: number }>
+  monsters: Array<{ cr: number; count: number; name?: string }>
   created_at: string
   updated_at: string
 }
