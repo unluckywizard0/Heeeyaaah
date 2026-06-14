@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   applyDamage,
+  modifyDamage,
   applyHealing,
   setTempHp,
   concentrationDc,
@@ -24,6 +25,25 @@ describe('applyDamage', () => {
   })
   it('ignores negative damage', () => {
     expect(applyDamage({ hp_current: 10, temp_hp: 0 }, -5)).toEqual({ hp_current: 10, temp_hp: 0 })
+  })
+})
+
+describe('modifyDamage', () => {
+  it('leaves normal damage unchanged', () => {
+    expect(modifyDamage(13, 'normal')).toBe(13)
+  })
+  it('halves resistant damage, rounding down', () => {
+    expect(modifyDamage(13, 'resistant')).toBe(6)
+  })
+  it('doubles vulnerable damage', () => {
+    expect(modifyDamage(13, 'vulnerable')).toBe(26)
+  })
+  it('zeroes immune damage', () => {
+    expect(modifyDamage(13, 'immune')).toBe(0)
+  })
+  it('floors and clamps the input before modifying', () => {
+    expect(modifyDamage(-4, 'vulnerable')).toBe(0)
+    expect(modifyDamage(7.9, 'resistant')).toBe(3)
   })
 })
 

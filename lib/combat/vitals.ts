@@ -24,6 +24,35 @@ export function applyDamage(state: HpState, amount: number): HpState {
   }
 }
 
+/**
+ * How a creature's defenses treat an incoming damage type:
+ * - `resistant` — half damage (rounded down, per PHB)
+ * - `vulnerable` — double damage
+ * - `immune` — no damage
+ * - `normal` — unmodified
+ */
+export type DamageModifier = 'normal' | 'resistant' | 'vulnerable' | 'immune'
+
+/**
+ * Apply resistance / vulnerability / immunity to a raw damage amount, returning
+ * the damage actually dealt. Resistance halves and rounds down; vulnerability
+ * doubles; immunity zeroes. The result feeds both `applyDamage` and the
+ * concentration check, so the save DC reflects damage *taken*, not rolled.
+ */
+export function modifyDamage(amount: number, modifier: DamageModifier): number {
+  const dmg = Math.max(0, Math.floor(amount))
+  switch (modifier) {
+    case 'immune':
+      return 0
+    case 'resistant':
+      return Math.floor(dmg / 2)
+    case 'vulnerable':
+      return dmg * 2
+    default:
+      return dmg
+  }
+}
+
 /** Heal up to max HP. Healing never touches temp HP and never exceeds max. */
 export function applyHealing(state: HpState, amount: number, hpMax: number): HpState {
   const heal = Math.max(0, Math.floor(amount))

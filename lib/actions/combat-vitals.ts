@@ -5,10 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import type { ActionEconomy, ConditionTimers } from '@/lib/types/dnd'
 import {
   applyDamage,
+  modifyDamage,
   applyHealing,
   setTempHp,
   concentrationDc,
   shouldPromptConcentration,
+  type DamageModifier,
 } from '@/lib/combat/vitals'
 import {
   FRESH_ECONOMY,
@@ -25,8 +27,16 @@ export interface DamageResult {
   concentrationCheck?: { name: string; dc: number }
 }
 
-/** Apply damage to a creature (temp HP soaks first). Returns a concentration prompt if relevant. */
-export async function damageCreatureAction(creatureId: string, amount: number): Promise<DamageResult> {
+/**
+ * Apply damage to a creature (temp HP soaks first). `modifier` applies the
+ * target's resistance / vulnerability / immunity before the hit lands, so the
+ * concentration save (if any) is based on the damage actually taken.
+ */
+export async function damageCreatureAction(
+  creatureId: string,
+  amount: number,
+  modifier: DamageModifier = 'normal',
+): Promise<DamageResult> {
   const supabase = await createClient()
   const { data: c } = await supabase
     .from('combat_creatures')
@@ -35,7 +45,8 @@ export async function damageCreatureAction(creatureId: string, amount: number): 
     .single()
   if (!c) return {}
 
-  const next = applyDamage({ hp_current: c.hp_current, temp_hp: c.temp_hp }, amount)
+  const dealt = modifyDamage(amount, modifier)
+  const next = applyDamage({ hp_current: c.hp_current, temp_hp: c.temp_hp }, dealt)
   await supabase
     .from('combat_creatures')
     .update({ hp_current: next.hp_current, temp_hp: next.temp_hp })
@@ -43,9 +54,8 @@ export async function damageCreatureAction(creatureId: string, amount: number): 
 
   revalidatePath(COMBAT_PATH)
 
-  const dmg = Math.max(0, Math.floor(amount))
-  if (shouldPromptConcentration(c.concentration, dmg)) {
-    return { concentrationCheck: { name: c.name, dc: concentrationDc(dmg) } }
+  if (shouldPromptConcentration(c.concentration, dealt)) {
+    return { concentrationCheck: { name: c.name, dc: concentrationDc(dealt) } }
   }
   return {}
 }
