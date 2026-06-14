@@ -179,6 +179,22 @@ export interface RollHistory {
   created_at: string
 }
 
+// ─── Session notes ────────────────────────────────────────────────────────────
+
+export type NoteVisibility = 'dm_only' | 'shared'
+
+export interface SessionNote {
+  id: string
+  campaign_id: string
+  author_id: string
+  title: string
+  body: string
+  visibility: NoteVisibility
+  session_date: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ─── Rules content (seeded from 5e.tools) ────────────────────────────────────
 
 export interface RulesSpell {

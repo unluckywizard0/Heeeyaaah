@@ -8,6 +8,7 @@ const navItems = [
   { href: '/app/characters', label: 'Characters' },
   { href: '/app/combat', label: 'Combat' },
   { href: '/app/encounters', label: 'Encounters' },
+  { href: '/app/notes', label: 'Notes' },
   { href: '/app/rules', label: 'Rules' },
 ]
 
