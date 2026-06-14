@@ -224,6 +224,67 @@ begin
 end
 $$;
 
+-- ── Roll requests: DM asks, player answers, outsider isolated (KAN-49) ──────
+-- The DM opens a request for the whole party.
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.roll_requests (id, campaign_id, requested_by, label, kind, dc, target_user_id)
+values ('dddddddd-dddd-dddd-dddd-dddddddddddd',
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        '11111111-1111-1111-1111-111111111111',
+        'DC 15 Dexterity save', 'save', 15, null);
+
+do $$
+begin
+  assert (select count(*) from public.roll_requests) = 1,
+    'DM should see the request they opened';
+end
+$$;
+
+-- A campaign member sees the request and can answer it via roll_history.
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+do $$
+begin
+  assert (select count(*) from public.roll_requests) = 1,
+    'a campaign member must see roll requests aimed at the party';
+  -- A non-DM member must NOT be able to open a request.
+  begin
+    insert into public.roll_requests (campaign_id, requested_by, label)
+    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+            '22222222-2222-2222-2222-222222222222', 'Sneaky request');
+    assert false,
+      'SECURITY: a non-DM member must NOT be able to create a roll request';
+  exception
+    when insufficient_privilege then
+      null; -- expected: new row violates row-level security policy
+  end;
+end
+$$;
+
+insert into public.roll_history (campaign_id, user_id, expression, results, request_id)
+values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        '22222222-2222-2222-2222-222222222222', '1d20+5',
+        '{"dice":"1d20","rolls":[12],"modifier":5,"total":17}'::jsonb,
+        'dddddddd-dddd-dddd-dddd-dddddddddddd');
+
+-- The DM sees the player's response tied to the request.
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+do $$
+begin
+  assert (select count(*) from public.roll_history
+          where request_id = 'dddddddd-dddd-dddd-dddd-dddddddddddd') = 1,
+    'DM should see the response logged against their request';
+end
+$$;
+
+-- An unrelated user sees no requests at all.
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+do $$
+begin
+  assert (select count(*) from public.roll_requests) = 0,
+    'ISOLATION: an unrelated user must not see any roll requests';
+end
+$$;
+
 reset role;
 
 \echo '✅ RLS isolation checks passed'

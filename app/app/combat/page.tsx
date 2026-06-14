@@ -4,6 +4,7 @@ import type { CampaignMembership, CombatCreature, CombatEncounter } from '@/lib/
 import { CombatTracker } from '@/components/combat/combat-tracker'
 import { CombatRealtimeRefresh } from '@/components/combat/realtime-refresh'
 import { RollHistoryFeed } from '@/components/combat/roll-history-feed'
+import { RollRequestsSection } from '@/components/combat/roll-requests-section'
 import { PartyOverview } from '@/components/combat/party-overview'
 import { NewEncounterForm } from '@/components/combat/new-encounter-form'
 import { DraftEncounter } from '@/components/combat/draft-encounter'
@@ -99,6 +100,7 @@ export default async function CombatPage({
         </>
       )}
 
+      <RollRequestsSection campaignId={selected.campaign.id} isDm={isDm} />
       <RollHistoryFeed campaignId={selected.campaign.id} />
     </div>
   )
