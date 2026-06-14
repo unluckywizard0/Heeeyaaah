@@ -9,8 +9,10 @@ import {
   normalizeMonsters,
   normalizeTemplateName,
 } from '@/lib/encounter/templates'
+import { monsterCombatantDrafts } from '@/lib/combat/launch'
 
 const ENCOUNTERS_PATH = '/app/encounters'
+const COMBAT_PATH = '/app/combat'
 
 export interface TemplateActionState {
   error?: string
@@ -83,4 +85,55 @@ export async function deleteEncounterTemplateAction(id: string): Promise<Templat
 
   revalidatePath(ENCOUNTERS_PATH)
   return {}
+}
+
+/**
+ * Push the calculator's monster line-up into a new encounter for the campaign
+ * and send the DM to the tracker to roll initiative. Linking the campaign's
+ * player characters as combatants lands once the character sheet (KAN-13)
+ * ships. RLS limits encounter/combatant creation to the campaign's DM.
+ *
+ * Refuses to launch while the campaign already has an active encounter, so a
+ * stray click can't bury a fight in progress.
+ */
+export async function launchEncounterAction(
+  campaignId: string,
+  monsters: MonsterGroup[],
+): Promise<TemplateActionState> {
+  if (!campaignId) return { error: 'Missing campaign.' }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: active } = await supabase
+    .from('combat_encounters')
+    .select('id')
+    .eq('campaign_id', campaignId)
+    .eq('is_active', true)
+    .limit(1)
+  if (active && active.length > 0) {
+    return { error: 'An encounter is already active for this campaign. Finish it before launching a new one.' }
+  }
+
+  const { data: encounter, error: encounterError } = await supabase
+    .from('combat_encounters')
+    .insert({ campaign_id: campaignId, name: 'Encounter' })
+    .select('id')
+    .single()
+  if (encounterError || !encounter) return { error: encounterError?.message ?? 'Could not create encounter.' }
+
+  const drafts = monsterCombatantDrafts(normalizeMonsters(monsters))
+  if (drafts.length > 0) {
+    const { error: combatantsError } = await supabase
+      .from('combat_creatures')
+      .insert(drafts.map((d) => ({ ...d, encounter_id: encounter.id })))
+    if (combatantsError) return { error: combatantsError.message }
+  }
+
+  revalidatePath(ENCOUNTERS_PATH)
+  revalidatePath(COMBAT_PATH)
+  redirect(`${COMBAT_PATH}?campaign=${campaignId}`)
 }
