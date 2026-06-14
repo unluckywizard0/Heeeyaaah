@@ -11,6 +11,7 @@ import {
 } from '@/lib/actions/combat'
 import { Button } from '@/components/ui/button'
 import { AddCombatantForm } from '@/components/combat/add-combatant-form'
+import { CombatantVitals } from '@/components/combat/combatant-vitals'
 
 export function CombatTracker({
   encounter,
@@ -88,71 +89,103 @@ function TurnRow({
   isDm: boolean
   encounterId: string
 }) {
+  const isDown = creature.hp_current <= 0
+
   return (
     <li
-      className="flex items-center gap-3 rounded-lg border p-3"
+      className="rounded-lg border p-3"
       style={{
         borderColor: isCurrent ? 'var(--accent-gold)' : 'var(--border)',
         background: isCurrent ? 'var(--background-elevated)' : 'var(--background)',
+        opacity: isDown ? 0.65 : 1,
       }}
       aria-current={isCurrent ? 'true' : undefined}
     >
-      <span
-        className="w-10 text-center text-sm font-bold"
-        style={{ color: 'var(--foreground-muted)' }}
-        aria-label="Initiative"
-      >
-        {creature.initiative ?? '—'}
-      </span>
+      <div className="flex items-center gap-3">
+        <span
+          className="w-10 text-center text-sm font-bold"
+          style={{ color: 'var(--foreground-muted)' }}
+          aria-label="Initiative"
+        >
+          {creature.initiative ?? '—'}
+        </span>
 
-      <span className="flex-1 font-medium" style={{ color: 'var(--foreground)' }}>
-        {creature.name}
-        {creature.is_player && (
-          <span className="ml-2 rounded px-1.5 py-0.5 text-xs" style={{ background: 'var(--background-elevated)', color: 'var(--accent-gold)' }}>
-            player
-          </span>
-        )}
-        {isCurrent && (
-          <span className="ml-2 rounded px-1.5 py-0.5 text-xs font-semibold" style={{ background: 'var(--accent-gold)', color: 'var(--background)' }}>
-            current turn
-          </span>
-        )}
-        {creature.turn_status === 'delayed' && (
-          <span className="ml-2 text-xs" style={{ color: 'var(--foreground-muted)' }}>
-            (delaying)
-          </span>
-        )}
-        {creature.turn_status === 'holding' && (
-          <span className="ml-2 text-xs" style={{ color: 'var(--foreground-muted)' }}>
-            (holding)
-          </span>
-        )}
-      </span>
-
-      <span className="text-xs" style={{ color: 'var(--foreground-muted)' }}>
-        AC {creature.ac} · HP {creature.hp_current}/{creature.hp_max}
-      </span>
-
-      {isDm && (
-        <>
-          <form action={async () => { await toggleHoldAction(creature.id, creature.turn_status) }}>
-            <Button type="submit" variant="outline" size="sm">
-              {creature.turn_status === 'holding' ? 'Stop holding' : 'Hold'}
-            </Button>
-          </form>
+        <span className="flex-1 font-medium" style={{ color: 'var(--foreground)' }}>
+          {creature.name}
+          {creature.is_player && (
+            <span className="ml-2 rounded px-1.5 py-0.5 text-xs" style={{ background: 'var(--background-elevated)', color: 'var(--accent-gold)' }}>
+              player
+            </span>
+          )}
+          {isCurrent && (
+            <span className="ml-2 rounded px-1.5 py-0.5 text-xs font-semibold" style={{ background: 'var(--accent-gold)', color: 'var(--background)' }}>
+              current turn
+            </span>
+          )}
+          {creature.concentration && (
+            <span className="ml-2 text-xs" style={{ color: 'var(--accent-gold)' }} title="Concentrating">
+              ◇ conc.
+            </span>
+          )}
+          {creature.turn_status === 'delayed' && (
+            <span className="ml-2 text-xs" style={{ color: 'var(--foreground-muted)' }}>
+              (delaying)
+            </span>
+          )}
           {creature.turn_status === 'holding' && (
-            <form action={async () => { await readyActionAction(encounterId, creature.id) }}>
+            <span className="ml-2 text-xs" style={{ color: 'var(--foreground-muted)' }}>
+              (holding)
+            </span>
+          )}
+        </span>
+
+        <span className="text-xs" style={{ color: 'var(--foreground-muted)' }}>
+          AC {creature.ac} · HP {creature.hp_current}/{creature.hp_max}
+          {creature.temp_hp > 0 && (
+            <span style={{ color: 'var(--accent-gold)' }}> +{creature.temp_hp}</span>
+          )}
+        </span>
+
+        {isDm && (
+          <>
+            <CombatantVitals creature={creature} />
+            <form action={async () => { await toggleHoldAction(creature.id, creature.turn_status) }}>
               <Button type="submit" variant="outline" size="sm">
-                React now
+                {creature.turn_status === 'holding' ? 'Stop holding' : 'Hold'}
               </Button>
             </form>
-          )}
-          <form action={async () => { await removeCombatantAction(creature.id) }}>
-            <Button type="submit" variant="ghost" size="sm" aria-label={`Remove ${creature.name}`}>
-              ✕
-            </Button>
-          </form>
-        </>
+            {creature.turn_status === 'holding' && (
+              <form action={async () => { await readyActionAction(encounterId, creature.id) }}>
+                <Button type="submit" variant="outline" size="sm">
+                  React now
+                </Button>
+              </form>
+            )}
+            <form action={async () => { await removeCombatantAction(creature.id) }}>
+              <Button type="submit" variant="ghost" size="sm" aria-label={`Remove ${creature.name}`}>
+                ✕
+              </Button>
+            </form>
+          </>
+        )}
+      </div>
+
+      {creature.conditions.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5 pl-13">
+          {creature.conditions.map((cond) => {
+            const timer = creature.condition_timers?.[cond]
+            return (
+              <span
+                key={cond}
+                className="rounded px-1.5 py-0.5 text-xs"
+                style={{ background: 'var(--background-elevated)', color: 'var(--foreground-muted)' }}
+              >
+                {cond}
+                {timer ? ` (${timer})` : ''}
+              </span>
+            )
+          })}
+        </div>
       )}
     </li>
   )

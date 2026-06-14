@@ -112,6 +112,32 @@ export type ActionEconomy = {
 
 export type TurnStatus = 'normal' | 'delayed' | 'holding'
 
+// The 2024 PHB conditions. Exhaustion is a level (1–6) rather than on/off, but
+// the tracker treats it as a badge like the rest; the level lives in notes.
+export const CONDITIONS = [
+  'Blinded',
+  'Charmed',
+  'Deafened',
+  'Exhaustion',
+  'Frightened',
+  'Grappled',
+  'Incapacitated',
+  'Invisible',
+  'Paralyzed',
+  'Petrified',
+  'Poisoned',
+  'Prone',
+  'Restrained',
+  'Stunned',
+  'Unconscious',
+] as const
+
+export type ConditionName = (typeof CONDITIONS)[number]
+
+// name -> rounds remaining. A condition present in `conditions` but absent here
+// is indefinite; one listed here ticks down and clears at the end of a round.
+export type ConditionTimers = Record<string, number>
+
 export interface CombatCreature {
   id: string
   encounter_id: string
@@ -120,8 +146,13 @@ export interface CombatCreature {
   initiative: number | null
   hp_current: number
   hp_max: number
+  temp_hp: number
   ac: number
   conditions: string[]
+  condition_timers: ConditionTimers
+  concentration: boolean
+  death_save_successes: number
+  death_save_failures: number
   action_economy: ActionEconomy
   turn_status: TurnStatus
   is_player: boolean
