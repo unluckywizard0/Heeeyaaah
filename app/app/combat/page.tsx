@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import type { CampaignMembership, CombatCreature, CombatEncounter } from '@/lib/types/dnd'
 import { CombatTracker } from '@/components/combat/combat-tracker'
+import { CombatRealtimeRefresh } from '@/components/combat/realtime-refresh'
 import { PartyOverview } from '@/components/combat/party-overview'
 import { NewEncounterForm } from '@/components/combat/new-encounter-form'
 import { DraftEncounter } from '@/components/combat/draft-encounter'
@@ -72,6 +73,8 @@ export default async function CombatPage({
       {memberships.length > 1 && (
         <CampaignSelector memberships={memberships} selectedId={selected.campaign.id} />
       )}
+
+      {encounter && <CombatRealtimeRefresh encounterId={encounter.id} />}
 
       {!encounter || !encounter.is_active ? (
         isDm ? (
