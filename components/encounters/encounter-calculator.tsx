@@ -10,6 +10,8 @@ import {
   type EncounterRating,
 } from '@/lib/encounter/difficulty'
 import { CR_VALUES, formatCrValue } from '@/lib/encounter/xp-tables'
+import type { EncounterTemplate } from '@/lib/types/dnd'
+import { TemplateManager } from './template-manager'
 
 const RATING_LABEL: Record<EncounterRating, string> = {
   none: 'No monsters',
@@ -30,7 +32,14 @@ const RATING_COLOR: Record<EncounterRating, string> = {
 
 const LEVELS = Array.from({ length: 20 }, (_, i) => i + 1)
 
-export function EncounterCalculator() {
+export function EncounterCalculator({
+  campaignId,
+  templates = [],
+}: {
+  /** Set only when the viewer DMs the selected campaign; enables save/load. */
+  campaignId?: string
+  templates?: EncounterTemplate[]
+} = {}) {
   const [party, setParty] = useState<PartyGroup[]>([{ level: 1, count: 4 }])
   const [monsters, setMonsters] = useState<MonsterGroup[]>([{ cr: 1, count: 1 }])
 
@@ -38,7 +47,21 @@ export function EncounterCalculator() {
   const barPct = Math.min(100, Math.round(assessment.fractionOfHigh * 100))
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1fr_minmax(0,18rem)]">
+    <div className="space-y-6">
+      {campaignId && (
+        <TemplateManager
+          campaignId={campaignId}
+          templates={templates}
+          party={party}
+          monsters={monsters}
+          onLoad={(p, m) => {
+            setParty(p)
+            setMonsters(m)
+          }}
+        />
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_1fr_minmax(0,18rem)]">
       {/* ── Party ─────────────────────────────────────────────────────────── */}
       <Section title="Party" onAdd={() => setParty((p) => [...p, { level: 1, count: 1 }])}>
         {party.map((group, i) => (
@@ -128,6 +151,7 @@ export function EncounterCalculator() {
         <p className="mt-4 text-xs" style={{ color: 'var(--foreground-muted)' }}>
           2024 rules: monster XP is summed with no multiplier and compared to the party&apos;s budget.
         </p>
+      </div>
       </div>
     </div>
   )

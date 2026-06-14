@@ -172,21 +172,19 @@ export interface CombatCreatureSecret {
 
 // ─── Encounter Builder ────────────────────────────────────────────────────────
 
-export interface XpBudget {
-  easy: number
-  medium: number
-  hard: number
-  deadly: number
-}
-
+// A saved encounter calculator configuration (KAN-26). Stored per campaign and
+// round-trips the calculator's own state: party groups (level/count) and monster
+// groups (CR/count), mirroring PartyGroup[] / MonsterGroup[] from
+// lib/encounter/difficulty without coupling this leaf types module to it.
 export interface EncounterTemplate {
   id: string
   campaign_id: string
+  created_by: string
   name: string
-  monsters: Array<{ slug: string; count: number }>
-  party_size: number
-  party_level: number
-  xp_budget: XpBudget
+  party: Array<{ level: number; count: number }>
+  monsters: Array<{ cr: number; count: number }>
+  created_at: string
+  updated_at: string
 }
 
 // ─── Rolls ───────────────────────────────────────────────────────────────────
