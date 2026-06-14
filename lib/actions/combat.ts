@@ -161,16 +161,31 @@ export async function delayTurnAction(encounterId: string): Promise<void> {
 
   if (!encounter) return
 
-  const order = delayCurrentTurn(encounter.initiative_order as string[], {
+  const order = encounter.initiative_order as string[]
+  const pointer = {
     round_number: encounter.round_number,
     current_turn_index: encounter.current_turn_index,
-  })
+  }
 
-  const delayedId = (encounter.initiative_order as string[])[encounter.current_turn_index]
+  // The last combatant in the round has no one left to pass to, so delaying just
+  // ends the round: advance to the next round's first turn. They keep their
+  // initiative slot and act normally next round (no 'delayed' marker needed).
+  if (pointer.current_turn_index >= order.length - 1) {
+    const next = advanceTurn(order, pointer)
+    await supabase
+      .from('combat_encounters')
+      .update({ round_number: next.round_number, current_turn_index: next.current_turn_index })
+      .eq('id', encounterId)
+    revalidatePath(COMBAT_PATH)
+    return
+  }
+
+  const reordered = delayCurrentTurn(order, pointer)
+  const delayedId = order[pointer.current_turn_index]
 
   await supabase
     .from('combat_encounters')
-    .update({ initiative_order: order })
+    .update({ initiative_order: reordered })
     .eq('id', encounterId)
   await supabase
     .from('combat_creatures')

@@ -62,6 +62,16 @@ describe('delayCurrentTurn', () => {
   it('is a no-op with fewer than two combatants', () => {
     expect(delayCurrentTurn(['a'], { round_number: 1, current_turn_index: 0 })).toEqual(['a'])
   })
+  it('leaves the order unchanged when the last combatant delays', () => {
+    // Nothing comes after the last combatant, so the array genuinely doesn't
+    // move; delayTurnAction advances the round in that case instead of marking
+    // them delayed (which would otherwise re-run their turn immediately).
+    expect(delayCurrentTurn(['a', 'b', 'c'], { round_number: 1, current_turn_index: 2 })).toEqual([
+      'a',
+      'b',
+      'c',
+    ])
+  })
 })
 
 describe('insertReadiedAction', () => {
